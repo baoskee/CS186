@@ -210,6 +210,7 @@ class TransactionHandler:
 
         # If no one locking it, good.
         if key not in self._lock_table:
+            print("key not in self._lock_table!")
             self._lock_table[key] = [(self._xid, "S")]
             self._acquired_locks.append((self._xid, "S"))
             return True
@@ -227,12 +228,13 @@ class TransactionHandler:
 
         # Else, everyone on it has a shared lock; join in.
         self._lock_table[key] = self._lock_table[key].append((self._xid, "S"))
-        self._acquired_locks_append((self._xid, "S"))
+        self._acquired_locks.append((self._xid, "S"))
         return True
         
 
     def exists_Xlock(self, key):
         lock_list = self._lock_table[key]
+        print("lock_list = " + str(lock_list))
         for i in range(len(lock_list)):
             if lock_list[i][1] == "X":
                 return True
