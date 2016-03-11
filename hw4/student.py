@@ -106,12 +106,11 @@ class TransactionHandler:
         if own_lock is not None and own_lock[1] == "X":
             return True
 
-        # If no one locking it, OR you're the only one locking it, just get it.
-	    if key not in self._lock_table:
+        # If no one locking it, OR you're the only one locking it, just get it. 
+        if key not in self._lock_table:
             self._lock_table[key] = [(self._xid, "X")]
             self._acquired_locks.append((self._xid, "X"))
-            return True
-        
+            return True  
 
         lt_entry = self._lock_table[key] # List 
         if len(lt_entry) == 1 and lt_entry[0][0] == self._xid:
@@ -120,17 +119,16 @@ class TransactionHandler:
             return True 
 	     
         
-
         curr_queue = []
         if key in self._queue_table:
             curr_queue = self._queue_table[key]
 
-	    # If you want to upgrade, but other shares, cut queue.
-        if len(lt_entry) > 1 and own_lock is not None and own_lock[1] == "S": 
+        # If you want to upgrade, but other shares, cut queue.
+        if len(lt_entry) > 1 and own_lock is not None and own_lock[1] == "S":
             self._queue_table[key] = [(self._xid, "X")] + curr_queue
             return False
 
-	    # Else, just get in the queue.
+        # Else, just get in the queue.
         self._queue_table[key] = curr_queue + [(self._xid, "X")]
         return False
 
@@ -153,7 +151,7 @@ class TransactionHandler:
 
         """
         for i in range(len(self._acquired_locks)):
-            if self._acquired_locks[i][0] == key AND self._acquired_locks[i][1] == "S":
+            if self._acquired_locks[i][0] == key and self._acquired_locks[i][1] == "S":
                 self._acquired_locks[i][1] == "X"
                 return 
 
