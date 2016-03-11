@@ -176,12 +176,55 @@ class TransactionHandler:
         # Part 1.1: your code here!
         
         # Acquire shared lock
+
+        # If doesn't work, put in desired lock!!!! 
         
         value = self._store.get(key)
         if value is None:
             return 'No such key'
         else:
             return value
+
+
+    def acquire_Slock(self, key):
+        """
+        Acquires shared lock, if possible. 
+
+        @return: True if Slock acquired. False if not. 
+
+        """
+        # If already have lock, done
+        own_lock = self.has_lock(key)
+        if own_lock is not None and own_lock[1] == "S":
+            return True
+
+        # If no one locking it, good.
+        if key not in self._lock_table:
+            self._lock_table[key] = [(self._xid, "S")]
+            self._acquired_locks.append((self._xid, "S"))
+            return True
+
+        # If someone has an exclusive lock on it, off. 
+
+        curr_queue = []
+        if key in self._queue_table:
+            curr_queue = self._queue_table[key]
+        if self.exists_Xlock(key):
+            # Put self in queue
+            self._queue_table[key] = curr_queue.append((self._xid, "S"))
+            return False
+        
+
+        # Else, everyone on it has a shared lock; join in.
+        
+
+    def exists_Xlock(self, key):
+        lock_list = self._lock_table[key]
+        for i in range(len(lock_list)):
+            if lock_list[i][1] == "X":
+                return True
+
+        return False
 
     
 
