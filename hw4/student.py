@@ -175,6 +175,7 @@ class TransactionHandler:
         """
         # Part 1.1: your code here!
         
+        
         # Acquire shared lock
 
         # If doesn't work, put in desired lock!!!! 
@@ -182,6 +183,13 @@ class TransactionHandler:
         value = self._store.get(key)
         if value is None:
             return 'No such key'
+
+        # Acquire shared lock
+
+        if not self.acquire_Slock(key):
+            self._desired_lock = (self._xid, "S")
+            return None
+        
         else:
             return value
 
@@ -197,6 +205,8 @@ class TransactionHandler:
         own_lock = self.has_lock(key)
         if own_lock is not None and own_lock[1] == "S":
             return True
+
+        # No downgrades allowed! 
 
         # If no one locking it, good.
         if key not in self._lock_table:
@@ -216,6 +226,9 @@ class TransactionHandler:
         
 
         # Else, everyone on it has a shared lock; join in.
+        self._lock_table[key] = self._lock_table[key].append((self._xid, "S"))
+        self._acquired_locks_append((self._xid, "S"))
+        return True
         
 
     def exists_Xlock(self, key):
