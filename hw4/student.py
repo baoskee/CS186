@@ -51,7 +51,7 @@ class TransactionHandler:
         self._store = store
         self._undo_log = []
 
-	    self._queue_table = {} # Added, myself. 
+        self._queue_table = {} # Added, myself. 
 
     def perform_put(self, key, value):
         """
@@ -94,20 +94,19 @@ class TransactionHandler:
 
 
     def acquire_Xlock(self, key):
-	    """
-	    Acquires exclusive lock, if possible. 
+        """
+        Acquires exclusive lock, if possible. 
 
-	    @param self: the transaction handler
-	    @param key: key to acquire lock for
-	    @return: True if Xlock acquired. False if not. 
-	    """
-    
-        # If already have lock, done. 
+        @param self: the transaction handler
+        @param key: key to acquire lock for
+        @return: True if Xlock acquired. False if not. 
+        """
+        # If already have lock, done.
         own_lock = self.has_lock(key)
         if own_lock is not None and own_lock[1] == "X":
             return True
 
-	    # If no one locking it, OR you're the only one locking it, just get it.
+        # If no one locking it, OR you're the only one locking it, just get it.
 	    if key not in self._lock_table:
             self._lock_table[key] = [(self._xid, "X")]
             self._acquired_locks.append((self._xid, "X"))
@@ -177,11 +176,16 @@ class TransactionHandler:
         self._desired_lock.
         """
         # Part 1.1: your code here!
+        
+        # Acquire shared lock
+        
         value = self._store.get(key)
         if value is None:
             return 'No such key'
         else:
             return value
+
+    
 
     def release_and_grant_locks(self):
         """
