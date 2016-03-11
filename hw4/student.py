@@ -73,6 +73,17 @@ class TransactionHandler:
         is waiting to acquire in self._desired_lock.
         """
         # Part 1.1: your code here!
+
+	# Acquire exclusive lock. 
+
+	# If got lock, can insert pair into store.
+
+	# Remember put in lock table! 
+
+	# Lock upgrades!! 
+
+	# Update undo log. 
+
         self._store.put(key, value)
         return 'Success'
 
