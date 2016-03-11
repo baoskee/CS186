@@ -50,6 +50,8 @@ class TransactionHandler:
         self._store = store
         self._undo_log = []
 
+        self._queue_table = {} # Added, myself.
+
     def perform_put(self, key, value):
         """
         Handles the PUT request. You should first implement the logic for
