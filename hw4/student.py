@@ -43,6 +43,7 @@ checked and are valid.
 class TransactionHandler:
 
     def __init__(self, lock_table, xid, store):
+        # Lock table, value = list of tuples (xid, lock type)
         self._lock_table = lock_table
         self._acquired_locks = []
         self._desired_lock = None
@@ -75,11 +76,89 @@ class TransactionHandler:
         is waiting to acquire in self._desired_lock.
         """
         # Part 1.1: your code here!
+
+	    # Acquire exclusive lock (includes if you already have the X lock).
+        if not self.acquire_Xlock(key):
+            self._desired_lock = (self._xid, "X")
+            return None
+	 
+
+	    # If got lock, can insert pair into store.
+
         self._store.put(key, value)
+
+        # Update undo log
+        self._undo_log.append((key, value))
+        
         return 'Success'
 
-    def perform_get(self, key):
+
+    def acquire_Xlock(self, key):
         """
+        Acquires exclusive lock, if possible. 
+
+        @param self: the transaction handler
+        @param key: key to acquire lock for
+        @return: True if Xlock acquired. False if not. 
+        """
+        # If already have lock, done.
+        own_lock = self.has_lock(key)
+        if own_lock is not None and own_lock[1] == "X":
+            return True
+
+        # If no one locking it, OR you're the only one locking it, just get it.
+	    if key not in self._lock_table:
+            self._lock_table[key] = [(self._xid, "X")]
+            self._acquired_locks.append((self._xid, "X"))
+            return True
+        
+
+        lt_entry = self._lock_table[key] # List 
+        if len(lt_entry) == 1 and lt_entry[0][0] == self._xid:
+            lt_entry = [(self._xid, "X")]
+            self.upgrade_lock(key)
+            return True 
+	     
+        
+
+        curr_queue = []
+        if key in self._queue_table:
+            curr_queue = self._queue_table[key]
+
+	    # If you want to upgrade, but other shares, cut queue.
+        if len(lt_entry) > 1 and own_lock is not None and own_lock[1] == "S": 
+            self._queue_table[key] = [(self._xid, "X")] + curr_queue
+            return False
+
+	    # Else, just get in the queue.
+        self._queue_table[key] = curr_queue + [(self._xid, "X")]
+        return False
+
+    def has_lock(self, key):
+        """
+        Returns lock, if has it.
+
+        @return: lock, if has it. None if does not. 
+        
+        """
+        for i in range(len(self._acquired_locks)):
+            if self._acquired_locks[i][0] == key:
+                return self._acquired_locks[i]
+        return None
+
+
+    def upgrade_lock(self, key):
+        """ 
+        Updates self._acquired_locks, from "S" to "X"
+
+        """
+        for i in range(len(self._acquired_locks)):
+            if self._acquired_locks[i][0] == key AND self._acquired_locks[i][1] == "S":
+                self._acquired_locks[i][1] == "X"
+                return 
+
+    def perform_get(self, key):
+        """ 
         Handles the GET request. You should first implement the logic for
         acquiring the shared lock. If the transaction can successfully acquire
         the lock associated with the key, read the value from the store.
@@ -97,11 +176,16 @@ class TransactionHandler:
         self._desired_lock.
         """
         # Part 1.1: your code here!
+        
+        # Acquire shared lock
+        
         value = self._store.get(key)
         if value is None:
             return 'No such key'
         else:
             return value
+
+    
 
     def release_and_grant_locks(self):
         """
