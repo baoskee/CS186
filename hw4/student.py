@@ -85,10 +85,13 @@ class TransactionHandler:
 
 	    # If got lock, can insert pair into store.
 
+        # Need to grab old values!
+        old_value = self._store.get(key)
+
         self._store.put(key, value)
 
         # Update undo log
-        self._undo_log.append((key, value))
+        self._undo_log.append((key, old_value))
         
         return 'Success'
 
