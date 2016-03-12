@@ -117,7 +117,8 @@ class TransactionHandler:
         lt_entry = self._lock_table[key] # List 
         if len(lt_entry) == 1 and lt_entry[0][0] == self._xid:
             print("3")
-            lt_entry = [(self._xid, "X")]
+            #lt_entry = [(self._xid, "X")]
+            self._lock_table[key] = [(self._xid, "X")]
             self.upgrade_lock(key)
             return True 
 	     
@@ -206,12 +207,14 @@ class TransactionHandler:
         # If already have lock, done
         own_lock = self.has_lock(key)
         if own_lock is not None and own_lock[1] == "S":
+            print("A")
             return True
 
         # No downgrades allowed! 
 
         # If no one locking it, good.
         if key not in self._lock_table:
+            print("B")
             #print("key not in self._lock_table!")
             self._lock_table[key] = [(self._xid, "S")]
             self._acquired_locks.append((self._xid, "S"))
@@ -224,6 +227,7 @@ class TransactionHandler:
             curr_queue = self._queue_table[key]
         if self.exists_Xlock(key):
             # Put self in queue
+            print("C")
             self._queue_table[key] = curr_queue.append((self._xid, "S"))
             return False
         
@@ -235,6 +239,7 @@ class TransactionHandler:
             #flag = 1
         #print(flag)
         self._lock_table[key].append((self._xid, "S"))
+        print("D")
         # self._lock_table[key] = self._lock_table[key] + [(self._xid, "S")]
         #print("Now lock_table looks like " + str(self._lock_table[key]))
         self._acquired_locks.append((self._xid, "S"))
