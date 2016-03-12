@@ -321,7 +321,6 @@ class TransactionHandler:
         # If granted to an S lock, can maybe grant more too
         if try_more:
             i = 1
-            for i in range(len(queue)): JK WHILE LOOP THIS
             while queue[i][1] == "S":
                 if queue_acquire_Slock(key):
                     self.successful_queue_removal(key, "S", i)
