@@ -274,12 +274,15 @@ class TransactionHandler:
             
             # I...I don't think lock upgrade matters? 
             key = l[0]
+            lock_type = l[1]
                                 
             # Gotta delete self from the lock table
             locks_for_key = self._lock_table[key]
             for i in range(len(locks_for_key)):
-                if locks_for_key[i] == l:
-                    locks_for_key.pop(i)
+                if locks_for_key[i][0] == self._xid and locks_for_key[i][1] == lock_type:
+                    print("xid = " + str(self._xid))
+                    print("type = " + lock_type)
+                    self._lock_table[key].pop(i)
                     break
 
 
