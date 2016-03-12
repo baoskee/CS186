@@ -108,7 +108,7 @@ class TransactionHandler:
             return True
 
         # If no one locking it, OR you're the only one locking it, just get it. 
-        if key not in self._lock_table:
+        if key not in self._lock_table or len(self._lock_table[key]) == 0:
             print("2")
             self._lock_table[key] = [(self._xid, "X")]
             self._acquired_locks.append((self._xid, "X"))
@@ -270,11 +270,122 @@ class TransactionHandler:
         @param self: the transaction handler.
         """
         for l in self._acquired_locks:
-            pass # Part 1.2: your code here!
+             # Part 1.2: your code here!
+            
+            # I...I don't think lock upgrade matters? 
+            key = l[0]
+                                
+            # Gotta delete self from the lock table
+            locks_for_key = self._lock_table[key]
+            for i in range(len(locks_for_key)):
+                if locks_for_key[i] == l:
+                    locks_for_key.pop(i)
+                    break
+
+
+            # And grant to next in queue. 
+            self.grant_to_queue(key)
+                   
+
+
         self._acquired_locks = []
 
+        # UPDATE SELF.ACQUIREDLOCKS jk no -_____-
+
+
+    def grant_to_queue(self, key):
+        # If nothing in queue, done. 
+        if key not in self._queue_table:
+            return
+
+        # If desired_lock gets out of queue, delete desired_lock. 
+
+        # And don't forget to update lock_table, acquired_lock, queue_table.
+
+        # new_acquired_locks = [] 
+        
+        # Def gotta grant to first in queue
+        # Only if existing stuff in locks, allows it tho. 
+        try_more = 0
+        first_in_queue = queue[0]
+        if first_in_queue[1] == "S":
+            # The first one, must be able to grant S. 
+            self.successful_queue_removal(key, "S", 0)
+            try_more = 1
+        else:
+            # Gotta check if can get the X.  
+            if queue_acquire_Xlock(key):
+                self.successful_queue_removal(key, "X", 0)
+        
+                
+        # If granted to an S lock, can maybe grant more too
+        if try_more:
+            i = 1
+            for i in range(len(queue)): JK WHILE LOOP THIS
+            while queue[i][1] == "S":
+                if queue_acquire_Slock(key):
+                    self.successful_queue_removal(key, "S", i)
+                else:
+                    break
+                i = i + 1
+        
+
+
+    
+    def queue_acquire_Xlock(self, key, curr_id):
+        
+        
+        # No one locking it
+        if key not in self._lock_table or len(self._lock_table[key]) == 0:
+            return True
+        
+        # Or you're the only one locking it
+        lt_entry = self._lock_table[key]
+        if len(lt_entry) == 1 and lt_entry[0][0] == curr_id:
+            # Remove the S lock from lock_table. Acquired_locks done later.
+            self._lock_table[key] = []
+            return True
+
+        # Can't have someone with an X lock, b/c releasing. 
+
+        # If other shares, no.
+        return False 
+        
+            
+
+    def queue_acquire_Slock(self, key):
+        # If already have lock, I guess you're okay...
+        # Actually, don't think would happen
+        
+        
+        # If no one locking it, good.
+        if key not in self._lock_table:
+            return True
+
+        # If someone has an exclusive lock, no. 
+        if self.exists_Xlock(key):
+            return False
+
+        # Else, everyone has shared lock, join in. 
+        return True 
+         
+            
+
+    def successful_queue_removal(self, key, lock_type, queue_pos):
+        # Add to lock_table
+        self._lock_table[key].append((self._xid, lock_type))
+
+        # Add to new_acquired_locks - jK NO
+        # acquisitions.append((self._xid, lock_type)
+        
+        # Fix queue
+        queue = self._queue_table[key]
+        queue.pop(queue_pos)
+        
+        
+
     def commit(self):
-        """
+        """                     
         Commits the transaction.
 
         Note: This method is already implemented for you, and you only need to
@@ -395,3 +506,4 @@ class TransactionCoordinator:
         Otherwise, returns the xid of a transaction in a cycle.
         """
         pass # Part 2.1: your code here!
+
