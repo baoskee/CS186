@@ -157,8 +157,11 @@ class TransactionHandler:
 
         """
         for i in range(len(self._acquired_locks)):
+            print("here" + str(self._acquired_locks[i][0]))
+            print("here2" + str(self._acquired_locks[i][1]))
             if self._acquired_locks[i][0] == key and self._acquired_locks[i][1] == "S":
-                self._acquired_locks[i][1] == "X"
+                self._acquired_locks[i] = (key, "X")
+                print("aftermath " + str(self._acquired_locks[i][1]))
                 return 
 
     def perform_get(self, key):
@@ -206,7 +209,7 @@ class TransactionHandler:
         """
         # If already have lock, done
         own_lock = self.has_lock(key)
-        if own_lock is not None and own_lock[1] == "S":
+        if own_lock is not None:
             print("A")
             return True
 
@@ -270,6 +273,7 @@ class TransactionHandler:
         @param self: the transaction handler.
         """
         for l in self._acquired_locks:
+            print("acquired lock = " + str(l))
              # Part 1.2: your code here!
             
             # I...I don't think lock upgrade matters? 
@@ -279,6 +283,8 @@ class TransactionHandler:
             # Gotta delete self from the lock table
             locks_for_key = self._lock_table[key]
             for i in range(len(locks_for_key)):
+                print(locks_for_key[i][0])
+                print(locks_for_key[i][1])
                 if locks_for_key[i][0] == self._xid and locks_for_key[i][1] == lock_type:
                     print("xid = " + str(self._xid))
                     print("type = " + lock_type)
