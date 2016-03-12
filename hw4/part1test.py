@@ -168,7 +168,7 @@ class Part1Test(unittest.TestCase):
         t1 = TransactionHandler(lock_table, 1, store)
         self.assertEqual(t0.perform_get('a'), 'No such key')
         self.assertEqual(t0.perform_put('a', '0'), 'Success')        # T0 W(a)
-        self.assertEqualif(t1.perform_put('a', '1'), None)             # T1 W(a)
+        self.assertEqual(t1.perform_put('a', '1'), None)             # T1 W(a)
         self.assertEqual(t1.check_lock(), None)
         self.assertEqual(t1.check_lock(), None)
         self.assertEqual(t0.commit(), 'Transaction Completed')
