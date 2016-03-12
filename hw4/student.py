@@ -111,7 +111,7 @@ class TransactionHandler:
         if key not in self._lock_table or len(self._lock_table[key]) == 0:
             print("2")
             self._lock_table[key] = [(self._xid, "X")]
-            self._acquired_locks.append((self._xid, "X"))
+            self._acquired_locks.append((key, "X"))
             return True  
 
         lt_entry = self._lock_table[key] # List 
@@ -217,7 +217,7 @@ class TransactionHandler:
             print("B")
             #print("key not in self._lock_table!")
             self._lock_table[key] = [(self._xid, "S")]
-            self._acquired_locks.append((self._xid, "S"))
+            self._acquired_locks.append((key, "S"))
             return True
 
         # If someone has an exclusive lock on it, off. 
@@ -242,7 +242,7 @@ class TransactionHandler:
         print("D")
         # self._lock_table[key] = self._lock_table[key] + [(self._xid, "S")]
         #print("Now lock_table looks like " + str(self._lock_table[key]))
-        self._acquired_locks.append((self._xid, "S"))
+        self._acquired_locks.append((key, "S"))
         return True
         
 
