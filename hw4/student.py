@@ -104,16 +104,19 @@ class TransactionHandler:
         # If already have lock, done.
         own_lock = self.has_lock(key)
         if own_lock is not None and own_lock[1] == "X":
+            print("1")
             return True
 
         # If no one locking it, OR you're the only one locking it, just get it. 
         if key not in self._lock_table:
+            print("2")
             self._lock_table[key] = [(self._xid, "X")]
             self._acquired_locks.append((self._xid, "X"))
             return True  
 
         lt_entry = self._lock_table[key] # List 
         if len(lt_entry) == 1 and lt_entry[0][0] == self._xid:
+            print("3")
             lt_entry = [(self._xid, "X")]
             self.upgrade_lock(key)
             return True 
@@ -125,10 +128,12 @@ class TransactionHandler:
 
         # If you want to upgrade, but other shares, cut queue.
         if len(lt_entry) > 1 and own_lock is not None and own_lock[1] == "S":
+            print("4")
             self._queue_table[key] = [(self._xid, "X")] + curr_queue
             return False
 
         # Else, just get in the queue.
+        print("5")
         self._queue_table[key] = curr_queue + [(self._xid, "X")]
         return False
 
@@ -178,20 +183,17 @@ class TransactionHandler:
         
         # Acquire shared lock
 
-        # If doesn't work, put in desired lock!!!! 
+        # If doesn't work, put in desired lock!!!!
+
+        if not self.acquire_Slock(key):
+            self._desired_lock = (self._xid, "S")
+            return None 
         
         value = self._store.get(key)
         if value is None:
             return 'No such key'
+        return value
 
-        # Acquire shared lock
-
-        if not self.acquire_Slock(key):
-            self._desired_lock = (self._xid, "S")
-            return None
-        
-        else:
-            return value
 
 
     def acquire_Slock(self, key):
