@@ -43,7 +43,9 @@ checked and are valid.
 class TransactionHandler:
 
     def __init__(self, lock_table, xid, store):
-        # Lock table, value = list of tuples (xid, lock type)
+        # Lock table, value = list of 2 things
+            # First = list of tuples, (xid, lock)
+            # 2nd = FIFO queue for the id
         self._lock_table = lock_table
         self._acquired_locks = []
         self._desired_lock = None
@@ -51,7 +53,7 @@ class TransactionHandler:
         self._store = store
         self._undo_log = []
 
-        self._queue_table = {} # Added, myself.
+        # self._queue_table = {} # Added, myself.
 
     def perform_put(self, key, value):
         """
@@ -79,7 +81,7 @@ class TransactionHandler:
 
 	    # Acquire exclusive lock (includes if you already have the X lock).
         if not self.acquire_Xlock(key):
-            self._desired_lock = (self._xid, "X")
+            self._desired_lock = (key, value, "X")
             return None
 	 
 
@@ -93,6 +95,7 @@ class TransactionHandler:
         # Update undo log
         self._undo_log.append((key, old_value))
         
+        #print("end of put, lock_table = " + str(self._lock_table))
         return 'Success'
 
 
@@ -111,34 +114,40 @@ class TransactionHandler:
             return True
 
         # If no one locking it, OR you're the only one locking it, just get it. 
-        if key not in self._lock_table or len(self._lock_table[key]) == 0:
+        if key not in self._lock_table:
+            self._lock_table[key] = [[(self._xid, "X")], []]
+            self._acquired_locks.append((key, "X"))
+            return True
+        if len(self._lock_table[key][0]) == 0:
             print("2")
-            self._lock_table[key] = [(self._xid, "X")]
+            self._lock_table[key][0] = [(self._xid, "X")]
             self._acquired_locks.append((key, "X"))
             return True  
 
-        lt_entry = self._lock_table[key] # List 
+        # Only one looking
+        lt_entry = self._lock_table[key][0] # List 
         if len(lt_entry) == 1 and lt_entry[0][0] == self._xid:
             print("3")
             #lt_entry = [(self._xid, "X")]
-            self._lock_table[key] = [(self._xid, "X")]
+            self._lock_table[key][0] = [(self._xid, "X")]
             self.upgrade_lock(key)
             return True 
 	     
         
-        curr_queue = []
-        if key in self._queue_table:
-            curr_queue = self._queue_table[key]
+        # curr_queue = []
+        # if key in self._queue_table:
+        #     curr_queue = self._queue_table[key]
+        curr_queue = self._lock_table[key][1]
 
         # If you want to upgrade, but other shares, cut queue.
         if len(lt_entry) > 1 and own_lock is not None and own_lock[1] == "S":
             print("4")
-            self._queue_table[key] = [(self._xid, "X")] + curr_queue
+            self._lock_table[key][1] = [(self._xid, "X")] + curr_queue
             return False
 
         # Else, just get in the queue.
         print("5")
-        self._queue_table[key] = curr_queue + [(self._xid, "X")]
+        self._lock_table[key][1] = curr_queue + [(self._xid, "X")]
         return False
 
     def has_lock(self, key):
@@ -160,11 +169,11 @@ class TransactionHandler:
 
         """
         for i in range(len(self._acquired_locks)):
-            print("here" + str(self._acquired_locks[i][0]))
-            print("here2" + str(self._acquired_locks[i][1]))
+            #print("here" + str(self._acquired_locks[i][0]))
+            #print("here2" + str(self._acquired_locks[i][1]))
             if self._acquired_locks[i][0] == key and self._acquired_locks[i][1] == "S":
                 self._acquired_locks[i] = (key, "X")
-                print("aftermath " + str(self._acquired_locks[i][1]))
+                #print("aftermath " + str(self._acquired_locks[i][1]))
                 return 
 
     def perform_get(self, key):
@@ -193,8 +202,11 @@ class TransactionHandler:
         # If doesn't work, put in desired lock!!!!
 
         if not self.acquire_Slock(key):
-            self._desired_lock = (self._xid, "S")
+            self._desired_lock = (key, None, "S")
+            #print("get unsuccessful, lock_table = " + str(self._lock_table))
             return None 
+
+        #print("end of get, lock_table = " + str(self._lock_table))
         
         value = self._store.get(key)
         if value is None:
@@ -211,6 +223,7 @@ class TransactionHandler:
 
         """
         # If already have lock, done
+        #print("line 226, lock_table = " + str(self._lock_table))
         own_lock = self.has_lock(key)
         if own_lock is not None:
             print("A")
@@ -222,19 +235,27 @@ class TransactionHandler:
         if key not in self._lock_table:
             print("B")
             #print("key not in self._lock_table!")
-            self._lock_table[key] = [(self._xid, "S")]
+            self._lock_table[key] = [[(self._xid, "S")], []]
+            self._acquired_locks.append((key, "S"))
+            return True
+        if len(self._lock_table[key][0]) == 0:
+            self._lock_table[key][0] = [(self._xid, "S")]
             self._acquired_locks.append((key, "S"))
             return True
 
         # If someone has an exclusive lock on it, off. 
 
-        curr_queue = []
-        if key in self._queue_table:
-            curr_queue = self._queue_table[key]
+        # curr_queue = []
+        # if key in self._queue_table:
+        #     curr_queue = self._queue_table[key]
+
+        curr_queue = self._lock_table[key][1]
         if self.exists_Xlock(key):
             # Put self in queue
             print("C")
-            self._queue_table[key] = curr_queue.append((self._xid, "S"))
+            #print("lock_table = " + str(self._lock_table))
+            self._lock_table[key][1].append((self._xid, "S"))
+            #print("post, lock_table = " + str(self._lock_table))
             return False
         
 
@@ -244,7 +265,7 @@ class TransactionHandler:
         #if key in self._lock_table:
             #flag = 1
         #print(flag)
-        self._lock_table[key].append((self._xid, "S"))
+        self._lock_table[key][0].append((self._xid, "S"))
         print("D")
         # self._lock_table[key] = self._lock_table[key] + [(self._xid, "S")]
         #print("Now lock_table looks like " + str(self._lock_table[key]))
@@ -253,7 +274,7 @@ class TransactionHandler:
         
 
     def exists_Xlock(self, key):
-        lock_list = self._lock_table[key]
+        lock_list = self._lock_table[key][0]
         #print("lock_list = " + str(lock_list))
         for i in range(len(lock_list)):
             if lock_list[i][1] == "X":
@@ -275,8 +296,11 @@ class TransactionHandler:
 
         @param self: the transaction handler.
         """
+
+        print("releasing locks")
+        print("prev, lock_table = " + str(self._lock_table))
         for l in self._acquired_locks:
-            print("acquired lock = " + str(l))
+            #print("acquired lock = " + str(l))
              # Part 1.2: your code here!
             
             # I...I don't think lock upgrade matters? 
@@ -284,21 +308,23 @@ class TransactionHandler:
             lock_type = l[1]
                                 
             # Gotta delete self from the lock table
-            locks_for_key = self._lock_table[key]
+            locks_for_key = self._lock_table[key][0]
             for i in range(len(locks_for_key)):
-                print(locks_for_key[i][0])
-                print(locks_for_key[i][1])
+                #print(locks_for_key[i][0])
+                #print(locks_for_key[i][1])
                 if locks_for_key[i][0] == self._xid and locks_for_key[i][1] == lock_type:
-                    print("xid = " + str(self._xid))
-                    print("type = " + lock_type)
-                    self._lock_table[key].pop(i)
+                    #print("xid = " + str(self._xid))
+                    #print("type = " + lock_type)
+                    self._lock_table[key][0].pop(i)
                     break
 
 
-            # And grant to next in queue. 
+            # And grant to next in queue.
+            print("about to grant to queue")
+            #print("queue right now is " + str(self._queue_table))
             self.grant_to_queue(key)
                    
-
+            print("granted, lock_table = " + str(self._lock_table))
 
         self._acquired_locks = []
 
@@ -306,8 +332,14 @@ class TransactionHandler:
 
 
     def grant_to_queue(self, key):
+        #print("key = " + key)
+        #print(str(self._queue_table))
         # If nothing in queue, done. 
-        if key not in self._queue_table:
+        #if key not in self._queue_table:
+        #print ("KEY EXISTS? " + str((key in self._lock_table)))
+        #print("self._lock_table = " + str(self._lock_table))
+        if len(self._lock_table[key][1]) == 0:
+            print("342")
             return
 
         # If desired_lock gets out of queue, delete desired_lock. 
@@ -319,23 +351,29 @@ class TransactionHandler:
         # Def gotta grant to first in queue
         # Only if existing stuff in locks, allows it tho. 
         try_more = 0
+        queue = self._lock_table[key][1]
+        #print("queue in grant to queue = " + str(queue))
         first_in_queue = queue[0]
         if first_in_queue[1] == "S":
+            print("358")
             # The first one, must be able to grant S. 
-            self.successful_queue_removal(key, "S", 0)
+            self.successful_queue_removal(first_in_queue[0], key, "S", 0)
             try_more = 1
         else:
+            print("363")
+            #print("first in queue is X")
             # Gotta check if can get the X.  
-            if queue_acquire_Xlock(key):
-                self.successful_queue_removal(key, "X", 0)
+            if self.queue_acquire_Xlock(key, first_in_queue[0]):
+                print("367")
+                self.successful_queue_removal(first_in_queue[0], key, "X", 0)
         
                 
         # If granted to an S lock, can maybe grant more too
         if try_more:
             i = 1
-            while queue[i][1] == "S":
-                if queue_acquire_Slock(key):
-                    self.successful_queue_removal(key, "S", i)
+            while i < len(queue) and queue[i][1] == "S":
+                if queue_acquire_Slock(key, queue[i][0]):
+                    self.successful_queue_removal(queue[i][0], key, "S", i)
                 else:
                     break
                 i = i + 1
@@ -343,18 +381,26 @@ class TransactionHandler:
 
 
     
-    def queue_acquire_Xlock(self, key, curr_id):
+    def queue_acquire_Xlock(self, key, xid):
         
         
         # No one locking it
-        if key not in self._lock_table or len(self._lock_table[key]) == 0:
+        if key not in self._lock_table or len(self._lock_table[key][0]) == 0:
             return True
         
         # Or you're the only one locking it
-        lt_entry = self._lock_table[key]
-        if len(lt_entry) == 1 and lt_entry[0][0] == curr_id:
+        print("392, lock_table = " + str(self._lock_table))
+        lt_entry = self._lock_table[key][0]
+        #print("len = " + len(lt_entry))
+        #print("curr_id = " + lt_entry[0][0])
+        print("len = " + str(len(lt_entry)))
+        print("xid = " + str(xid))
+        print("lt_entry stuff = " + str(lt_entry[0][0]))
+        if len(lt_entry) == 1 and lt_entry[0][0] == xid:
+            print("396")
+            #print("should be going in here")
             # Remove the S lock from lock_table. Acquired_locks done later.
-            self._lock_table[key] = []
+            self._lock_table[key][0] = []
             return True
 
         # Can't have someone with an X lock, b/c releasing. 
@@ -364,13 +410,13 @@ class TransactionHandler:
         
             
 
-    def queue_acquire_Slock(self, key):
+    def queue_acquire_Slock(self, key, xid):
         # If already have lock, I guess you're okay...
         # Actually, don't think would happen
         
         
         # If no one locking it, good.
-        if key not in self._lock_table:
+        if key not in self._lock_table or len(self._lock_table[key][0]) == 0:
             return True
 
         # If someone has an exclusive lock, no. 
@@ -382,15 +428,15 @@ class TransactionHandler:
          
             
 
-    def successful_queue_removal(self, key, lock_type, queue_pos):
+    def successful_queue_removal(self, xid, key, lock_type, queue_pos):
         # Add to lock_table
-        self._lock_table[key].append((self._xid, lock_type))
+        self._lock_table[key][0].append((xid, lock_type))
 
         # Add to new_acquired_locks - jK NO
         # acquisitions.append((self._xid, lock_type)
         
         # Fix queue
-        queue = self._queue_table[key]
+        queue = self._lock_table[key][1]
         queue.pop(queue_pos)
         
         
@@ -469,12 +515,63 @@ class TransactionHandler:
         successfully acquired the lock. If the lock has not been granted,
         returns None.
         """
-        pass # Part 1.3: your code here!
+
+        key = self._desired_lock[0]
+        value = self._desired_lock[1]
+        lock_type = self._desired_lock[2]
 
 
+        if self.granted_lock(key, lock_type):
+            print("granted")
+            # Got the lock! 
 
 
+            # Update self.acquired_locks
+            self.update_acquired_locks(key, lock_type)
 
+            # Can get rid of desired_lock
+            self._desired_lock = None
+
+            if lock_type == "S":
+                return self.perform_get(key)
+            return self.perform_put(key, value)
+
+        # Know if granted, if now contained in lock_tables. 
+        
+        # Update self.acquired_locks if granted! 
+
+        # Possibly clean up, if lock upgrade
+
+        # Undo
+
+
+        # Also, don't forget get rid of desired_lock if good. 
+
+        return None 
+
+    def granted_lock(self, key, lock_type):
+        #print("want " + str(key) + ", " + lock_type)
+        lock_list = self._lock_table[key][0]
+        for l in lock_list:
+            #print("lock_list = " + str(l))
+            #print("queue = " + str(self._lock_table[key][1]))
+            if l[0] == self._xid and l[1] == lock_type:
+                #print("true")
+                return True
+        #print("false")
+        return False
+
+    def update_acquired_locks(self, key, lock_type):
+        # Only edge case is upgrade, right? 
+        # Because won't go from X to S. If have X, can S. 
+
+        own_lock = self.has_lock(key) # Old lock
+        if lock_type == "X" and own_lock is not None and own_lock[1] == "S":
+            # Upgrade
+            self.upgrade_lock(key)
+        else:
+            # Just add to acquired_locks
+            self._acquired_locks.append((key, lock_type)) 
 
 
 """
