@@ -626,55 +626,15 @@ class TransactionCoordinator:
 
             # If you like, see something you already saw before, that's a cycle, right? 
 
+        cycle_presence = detect_cycle(wf_graph)
+
+        if cycle_presence[0]:
+            return cycle_presence[1]
+        return None 
+
         # Return thing. 
             # I guess, return the thing that you cycled up on. 
             # maybe have cycle detection return like (bool, xid)
-
-    def detect_cycle(graph):
-        # DFS. Algorithm reference, at bottom. 
-        
-        visited = {} # These nodes are already cleared. 
-        stack = {} # Keeps track of stuff, in current like, path. Can be reached on current path. 
-
-        # And then, gotta make sure no node = cycle. 
-        for node_xid in graph.keys():
-            cycle_result = cycle_helper(node_xid, visited, stack, graph)
-            if (cycle_result[0]):
-                return cycle_result
-
-        return (False, 0) 
-
-    def cycle_helper(curr_xid, visited, stack, graph):
-        # Only need to check it out, if not yet visited. 
-        if curr_xid not in visited.keys():
-            visited[curr_xid] = True 
-            # Also add to stack, because it's like part of our path now
-            stack[curr_xid] = True
-
-            # Then gotta check all the children - keep moving along this path. SEE WHAT CAN BE REACHED - make sure no cycles. 
-
-            children = graph[curr_xid]
-            for child_xid in children:
-                # Check if children have a cycle from here. 
-                if (not visited[child_xid]):
-                    child_cycle_result = cycle_helper(child_xid, visited, stack, graph)
-                    # Gotta be not visited though. 
-                    if child_cycle_result[0]: 
-                        return child_cycle_result
-                # Else if no cycle from child, check if reaching child from here would be a cycle. 
-                # Saw child already, see it again now. Cycle. 
-                elif stack[child_xid]:
-                    return (True, child_xid)
-
-
-        # Aite, checked it out. Or already checked out. Good. 
-        # Can remove it from the stack; don't need to worry about it anymore.
-        stack[curr_xid] = False
-        return (False, 0)
-
-
-
-
 
 
 
@@ -716,6 +676,55 @@ class TransactionCoordinator:
                     graph[curr_lock_xid].append(queue_lock[0])
 
         return graph 
+
+
+        
+
+
+def detect_cycle(graph):
+        # DFS. Algorithm reference, at bottom. 
+        
+        visited = {} # These nodes are already cleared. 
+        stack = {} # Keeps track of stuff, in current like, path. Can be reached on current path. Worry about this stuff. 
+        # Stack like, holds stuff that we need to check cycles for. 
+
+        # And then, gotta make sure no node = cycle. 
+        for node_xid in graph.keys():
+            cycle_result = cycle_helper(node_xid, visited, stack, graph)
+            if (cycle_result[0]):
+                return cycle_result
+
+        return (False, 0) 
+
+def cycle_helper(curr_xid, visited, stack, graph):
+    # Only need to check it out, if not yet visited. 
+    if curr_xid not in visited.keys():
+        visited[curr_xid] = True 
+        # Also add to stack, because it's like part of our path now
+        stack[curr_xid] = True
+
+        # Then gotta check all the children - keep moving along this path. SEE WHAT CAN BE REACHED - make sure no cycles. 
+
+        children = graph[curr_xid]
+        for child_xid in children:
+            # Check if children have a cycle from here. 
+            if (not visited[child_xid]):
+                child_cycle_result = cycle_helper(child_xid, visited, stack, graph)
+                # Gotta be not visited though. 
+                if child_cycle_result[0]: 
+                    return child_cycle_result
+            # Else if no cycle from child, check if reaching child from here would be a cycle. 
+            # Saw child already, see it again now. Cycle. 
+            elif stack[child_xid]:
+                return (True, child_xid)
+
+
+    # Aite, checked it out. Or already checked out. Good. 
+    # Can remove it from the stack; don't need to worry about it anymore.
+    # Can only remove from stack, because we've cleared this node. 
+    stack[curr_xid] = False
+    return (False, 0)
+
 
 
 
