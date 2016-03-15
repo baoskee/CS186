@@ -613,5 +613,96 @@ class TransactionCoordinator:
         @return: If there are no cycles in the waits-for graph, returns None.
         Otherwise, returns the xid of a transaction in a cycle.
         """
-        pass # Part 2.1: your code here!
+        # Constructing waits-for graph from lock table
 
+        wf_graph = self.create_waitsfor_graph()    
+
+
+        # Graph class, just need like a hashmap of all the nodes? Dictinoary. 
+        # Maybe dictionary; key = xid, and then children = value? 
+
+
+        # Cycle detection
+
+            # If you like, see something you already saw before, that's a cycle, right? 
+
+        # Return thing. 
+            # I guess, return the thing that you cycled up on. 
+            # maybe have cycle detection return like (bool, xid)
+
+    def detect_cycle(graph):
+        # DFS. Algorithm reference, at bottom. 
+        
+        visited = {} # These nodes are already cleared. 
+        stack = {} # Keeps track of stuff, in current like, path. Can be reached on current path. 
+
+        # And then, gotta make sure no node = cycle. 
+        for node_xid in graph.keys():
+            cycle_result = cycle_helper(SOMMEMEEETHdflkghdslguhINGGG)
+            if (cycle_result[0]):
+                return cycle_result
+
+        return (False, 0) 
+
+    def cycle_helper(curr_xid, stufff):
+        # Only need to check it out, if not yet visited. 
+        if curr_xid not in visited.keys():
+            visited[curr_xid] = True 
+            # Also add to stack, because it's like part of our path now
+            stack[curr_xid] = True
+
+            # Then gotta check all the children - keep moving along this path. SEE WHAT CAN BE REACHED - make sure no cycles. 
+
+            
+
+
+
+
+
+
+
+    def create_waitsfor_graph(self):
+        """ 
+        Creates waits-for graph, using the self._lock_table. 
+
+        @return: dictionary, that's like, the graph. 
+            Key = xid; values = children. 
+        """
+
+        lock_table = self._lock_table
+
+        # Okay, so I guess
+            # Graph points to later thing, like time flow, not thing it's waiting for. 
+            # So, iterate through lock table
+                # If thing has a queue
+                    # Draw edge from key, to each thing in queue. 
+                    # Iterate through queue I guess.  
+
+        graph = {} 
+
+        for key in lock_table.keys():
+            curr_locks_list = lock_table[key][0]
+            queue = lock_table[key][1]
+                # Then will like, actually go in graph. 
+            queue_exists = (len(queue) > 0)
+
+
+            for curr_lock in curr_locks_list:
+                # Draw edge, to each thing in queue. 
+                curr_lock_xid = curr_lock[0]
+                if queue_exists and curr_lock[0] not in graph.keys():
+                    # Add the key to the graph. 
+                    graph[curr_lock_xid] = []
+
+                for queue_lock in queue:
+                    # Okay, the key should exist in the graph. 
+                    graph[curr_lock_xid].append(queue_lock[0])
+
+        return graph 
+
+
+
+
+
+
+# Thanks to http://www.geeksforgeeks.org/detect-cycle-in-a-graph/, for help with cycle detection algorithm. 
