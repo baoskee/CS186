@@ -653,6 +653,7 @@ class TransactionCoordinator:
             # So, iterate through lock table
                 # If thing has a queue
                     # Draw edge from key, to each thing in queue. 
+                    # BUT ONLY IF AT LEAST ONE OF THEM IS A WRITE 
                     # Iterate through queue I guess.  
 
         graph = {} 
@@ -673,7 +674,9 @@ class TransactionCoordinator:
 
                 for queue_lock in queue:
                     # Okay, the key should exist in the graph. 
-                    graph[curr_lock_xid].append(queue_lock[0])
+                    # ONLY DRAW EDGE IF AT LEAST ONE OF THEM IS A WRITE
+                    if (curr_lock[1] == "X" or queue_lock[1] == "X"):
+                        graph[curr_lock_xid].append(queue_lock[0])
 
                     # Urgh need also make sure this node exists in the graph. 
                     if queue_lock[0] not in graph.keys():
