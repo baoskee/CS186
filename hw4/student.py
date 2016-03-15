@@ -638,13 +638,13 @@ class TransactionCoordinator:
 
         # And then, gotta make sure no node = cycle. 
         for node_xid in graph.keys():
-            cycle_result = cycle_helper(SOMMEMEEETHdflkghdslguhINGGG)
+            cycle_result = cycle_helper(node_xid, visited, stack, graph)
             if (cycle_result[0]):
                 return cycle_result
 
         return (False, 0) 
 
-    def cycle_helper(curr_xid, stufff):
+    def cycle_helper(curr_xid, visited, stack, graph):
         # Only need to check it out, if not yet visited. 
         if curr_xid not in visited.keys():
             visited[curr_xid] = True 
@@ -653,7 +653,24 @@ class TransactionCoordinator:
 
             # Then gotta check all the children - keep moving along this path. SEE WHAT CAN BE REACHED - make sure no cycles. 
 
-            
+            children = graph[curr_xid]
+            for child_xid in children:
+                # Check if children have a cycle from here. 
+                if (not visited[child_xid]):
+                    child_cycle_result = cycle_helper(child_xid, visited, stack, graph)
+                    # Gotta be not visited though. 
+                    if child_cycle_result[0]: 
+                        return child_cycle_result
+                # Else if no cycle from child, check if reaching child from here would be a cycle. 
+                # Saw child already, see it again now. Cycle. 
+                elif stack[child_xid]:
+                    return (True, child_xid)
+
+
+        # Aite, checked it out. Or already checked out. Good. 
+        # Can remove it from the stack; don't need to worry about it anymore.
+        stack[curr_xid] = False
+        return (False, 0)
 
 
 
@@ -666,7 +683,7 @@ class TransactionCoordinator:
         Creates waits-for graph, using the self._lock_table. 
 
         @return: dictionary, that's like, the graph. 
-            Key = xid; values = children. 
+            Key = xid; values = children xids. 
         """
 
         lock_table = self._lock_table
