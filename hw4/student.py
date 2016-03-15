@@ -675,10 +675,14 @@ class TransactionCoordinator:
                     # Okay, the key should exist in the graph. 
                     graph[curr_lock_xid].append(queue_lock[0])
 
+                    # Urgh need also make sure this node exists in the graph. 
+                    if queue_lock[0] not in graph.keys():
+                        graph[queue_lock[0]] = []
+
         return graph 
 
 
-        
+
 
 
 def detect_cycle(graph):
@@ -708,7 +712,7 @@ def cycle_helper(curr_xid, visited, stack, graph):
         children = graph[curr_xid]
         for child_xid in children:
             # Check if children have a cycle from here. 
-            if (not visited[child_xid]):
+            if (child_xid not in visited.keys()) or (not visited[child_xid]):
                 child_cycle_result = cycle_helper(child_xid, visited, stack, graph)
                 # Gotta be not visited though. 
                 if child_cycle_result[0]: 
