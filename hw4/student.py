@@ -260,17 +260,18 @@ class TransactionHandler:
         
 
         # Else, everyone on it has a shared lock; join in.
-        #print("everyone has a shared lock; appending " + str((self._xid, "S"))
-        #flag = 0
-        #if key in self._lock_table:
-            #flag = 1
-        #print(flag)
-        self._lock_table[key][0].append((self._xid, "S"))
-        print("D")
+        # WAIT CAN ONLY JOIN IN IF there isn't already a queue. 
+        if len(curr_queue) == 0:
+            self._lock_table[key][0].append((self._xid, "S"))
+            print("D")
         # self._lock_table[key] = self._lock_table[key] + [(self._xid, "S")]
         #print("Now lock_table looks like " + str(self._lock_table[key]))
-        self._acquired_locks.append((key, "S"))
-        return True
+            self._acquired_locks.append((key, "S"))
+            return True
+
+        # Else, gotta get in the queue. 
+        self._lock_table[key][1] = curr_queue + [(self._xid, "S")]
+        return False 
         
 
     def exists_Xlock(self, key):
